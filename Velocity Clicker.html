@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>⚡ Velocity Clicker v2</title>
+
+<style>
+body{
+margin:0;
+background:#000;
+color:#87CEEB;
+font-family:Arial;
+text-align:center;
+overflow:hidden;
+}
+
+canvas{
+position:fixed;
+top:0;
+left:0;
+z-index:-1;
+}
+
+.card{
+background:rgba(20,20,20,0.85);
+border-radius:18px;
+padding:12px;
+margin:10px auto;
+width:340px;
+}
+
+button{
+border:none;
+border-radius:14px;
+padding:10px 14px;
+margin:5px;
+background:#111;
+color:#87CEEB;
+cursor:pointer;
+transition:0.2s;
+}
+button:hover{
+transform:scale(1.05);
+box-shadow:0 0 10px #87CEEB;
+}
+
+#clickBtn{
+font-size:20px;
+padding:18px 26px;
+}
+
+.particle{
+position:absolute;
+color:#87CEEB;
+pointer-events:none;
+animation:up 0.9s forwards;
+}
+@keyframes up{
+to{transform:translateY(-90px);opacity:0;}
+}
+
+.bar{
+width:100%;
+height:10px;
+background:#222;
+border-radius:10px;
+overflow:hidden;
+}
+.fill{
+height:100%;
+width:0%;
+background:#87CEEB;
+transition:0.2s;
+}
+</style>
+</head>
+
+<body>
+
+<canvas id="bg"></canvas>
+
+<h2>⚡ Velocity Clicker ENGINE v2</h2>
+
+<div class="card">
+<div id="power">Power: 0</div>
+<button id="clickBtn">CLICK ⚡</button>
+
+<div class="bar"><div id="fill" class="fill"></div></div>
+</div>
+
+<!-- 🛒 UPGRADE SHOP -->
+<div class="card">
+<h3>🛒 Upgrade Shop</h3>
+
+<button onclick="buyMult(1)">Buy x1 Mult (Cost: 50)</button>
+<button onclick="buyMult(2)">Buy x2 Mult (Cost: 200)</button>
+<button onclick="buyMult(5)">Buy x5 Mult (Cost: 1000)</button>
+
+<button onclick="buyFactory()">🏭 Factory (Cost: 500)</button>
+<button onclick="buyReactor()">⚛ Reactor (Cost: 5000)</button>
+</div>
+
+<!-- 🎮 PRESTIGE -->
+<div class="card">
+<h3>🎮 Prestige</h3>
+<button onclick="prestige()">🔥 Rebirth</button>
+<div>Prestige Bonus: x<span id="prestige">1</span></div>
+</div>
+
+<script>
+
+/* ===== STATE ===== */
+let state={
+power:0,
+mult:1,
+factory:0,
+reactor:0,
+prestige:1
+};
+
+/* ===== COSTS ===== */
+let costs={
+mult1:50,
+mult2:200,
+mult5:1000,
+factory:500,
+reactor:5000
+};
+
+/* ===== DOM ===== */
+const powerEl=document.getElementById("power");
+const fillEl=document.getElementById("fill");
+const prestigeEl=document.getElementById("prestige");
+const clickBtn=document.getElementById("clickBtn");
+
+/* ===== CLICK ===== */
+clickBtn.onclick=(e)=>{
+gain(state.mult * state.prestige, e);
+};
+
+/* ===== GAIN SYSTEM ===== */
+function gain(amount,e){
+state.power += amount;
+
+/* particle engine v2 */
+for(let i=0;i<6;i++){
+let p=document.createElement("div");
+p.className="particle";
+p.innerText="+"+amount;
+p.style.left=e.clientX+"px";
+p.style.top=e.clientY+"px";
+p.style.fontSize=(10+Math.random()*10)+"px";
+document.body.appendChild(p);
+setTimeout(()=>p.remove(),900);
+}
+
+update();
+}
+
+/* ===== SHOP ===== */
+function buyMult(x){
+let cost = x===1?costs.mult1:x===2?costs.mult2:costs.mult5;
+
+if(state.power>=cost){
+state.power-=cost;
+state.mult = Math.max(state.mult, x); // player chooses multiplier
+update();
+}
+}
+
+function buyFactory(){
+if(state.power>=costs.factory){
+state.power-=costs.factory;
+state.factory++;
+}
+update();
+}
+
+function buyReactor(){
+if(state.power>=costs.reactor){
+state.power-=costs.reactor;
+state.reactor++;
+}
+update();
+}
+
+/* ===== PRESTIGE SYSTEM ===== */
+function prestige(){
+if(state.power < 10000) return;
+
+state = {
+power:0,
+mult:1,
+factory:0,
+reactor:0,
+prestige: state.prestige + Math.floor(Math.sqrt(state.power)/1000) + 1
+};
+
+update();
+}
+
+/* ===== AUTO PRODUCTION ===== */
+setInterval(()=>{
+state.power +=
+state.factory * 5 +
+state.reactor * 25;
+
+update();
+},1000);
+
+/* ===== UPDATE ===== */
+function update(){
+
+powerEl.innerText="Power: "+Math.floor(state.power);
+prestigeEl.innerText=state.prestige;
+
+/* progress bar */
+let prog = state.power % 100;
+fillEl.style.width = prog+"%";
+
+save();
+}
+
+/* ===== SAVE ===== */
+function save(){
+localStorage.setItem("vel_v2",JSON.stringify(state));
+}
+
+function load(){
+let data=localStorage.getItem("vel_v2");
+if(data) state=JSON.parse(data);
+}
+
+/* ===== STAR BACKGROUND ===== */
+let c=bg.getContext("2d");
+bg.width=innerWidth;
+bg.height=innerHeight;
+
+let stars=Array(120).fill().map(()=>({
+x:Math.random()*bg.width,
+y:Math.random()*bg.height,
+s:Math.random()*2
+}));
+
+function draw(){
+c.clearRect(0,0,bg.width,bg.height);
+c.fillStyle="#87CEEB";
+
+stars.forEach(s=>{
+c.fillRect(s.x,s.y,s.s,s.s);
+s.y+=0.3;
+if(s.y>bg.height)s.y=0;
+});
+
+requestAnimationFrame(draw);
+}
+draw();
+
+/* INIT */
+load();
+update();
+
+</script>
+
+</body>
+</html>
